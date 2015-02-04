@@ -1,5 +1,6 @@
 import psycopg2
 import sys
+from sys import exit
 import logging
 import argparse
 '''test of git push'''
@@ -38,7 +39,16 @@ def get(name):
     cursor.execute(command, name)
     result = cursor.fetchone()
     connection.commit()
-    return result[1]
+    if not result:
+        #No snippet was found with that name.
+        print "No keyword '{}' found.".format(name)
+        print "Would you like to add '{}' as a keyword?".format(name)
+        answer = raw_input("Y/N?  ")
+        if answer.lower() == 'y':
+            msg = raw_input("Type a message to associate to the keyword {} (Enter for blank.)".format(name))
+            put(name, msg)
+    else:
+        return result[1]
 
 def main():
     """Main function"""
