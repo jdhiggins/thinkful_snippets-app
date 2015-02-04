@@ -24,7 +24,7 @@ def put(name, snippet):
             command = "insert into snippets values (%s, %s)"
             cursor.execute(command, (name, snippet))
         except psycopg2.IntegrityError as e:
-            command = "update snippets set message=%s where keyword = %s"
+            command = "update snippets set message=%s where keyword=%s"
             cursor.execute(command, (snippet, name))
     logging.debug("Snippet stored successfully.")
     return name, snippet
@@ -53,9 +53,18 @@ def get(name):
         if answer.lower() == 'y':
             msg = raw_input("Type a message to associate to the keyword {} (Enter for blank.)".format(name))
             put(name, msg)
+# add No case
     else:
         return result[0]
 
+def catalog():
+    
+    with connection, connection.cursor() as cursor:
+        cursor.execute("select keyword from snippets")
+        result = cursor.fetchall()
+    return result
+    
+    
 def main():
     """Main function"""
     logging.info("Constructing parser")
@@ -74,6 +83,10 @@ def main():
     get_parser = subparsers.add_parser("get", help="Retrieve a snippet")
     get_parser.add_argument("name", help ="The name of the snippet")
     
+    # Subparser for the catalog command
+    logging.debug("Constructing the catalog subparser")
+    catalog_parser = subparsers.add_parser("catalog", help="Get a keyword list")
+        
 
     arguments = parser.parse_args(sys.argv[1:])
     # Convert parsed arguments from Namespace to dictionary
@@ -86,7 +99,13 @@ def main():
     elif command == "get":
         snippet = get(**arguments)
         print("Retrieved snippet: {!r}".format(snippet))
+    elif command == "catalog":
+        keywords = catalog()
+        # right now keywords is a list of tuples (singletons)
+#        keywords = ", ".join([x[0] for x in keywords])
+#        print "Keywords: " + keywords
+        for x in keywords:
+            print x[0] + ",",
         
 if __name__ == "__main__":
     main()
-
