@@ -3,7 +3,7 @@ import sys
 from sys import exit
 import logging
 import argparse
-'''test of git push'''
+
 #Set the log output file, and the log level
 logging.basicConfig(filename="snippets.log", level=logging.DEBUG)
 logging.debug("Connecting to PostgreSQL")
@@ -19,15 +19,13 @@ def put(name, snippet):
     """
 #    logging.error("FIXME: Unimplemented - put({!r}, {!r})".format(name, snippet))
     logging.info("Storing snippet {!r}: {!r}".format(name, snippet))
-    cursor = connection.cursor()
-    try:
-        command = "insert into snippets values (%s, %s)"
-        cursor.execute(command, (name, snippet))
-    except psycopg2.IntegrityError as e:
-        connection.rollback()
-        command = "update snippets set message=%s where keyword = %s"
-        cursor.execute(command, (snippet, name))
-    connection.commit()
+    with connection, connection.cursor() as cursor:
+        try:
+            command = "insert into snippets values (%s, %s)"
+            cursor.execute(command, (name, snippet))
+        except psycopg2.IntegrityError as e:
+            command = "update snippets set message=%s where keyword = %s"
+            cursor.execute(command, (snippet, name))
     logging.debug("Snippet stored successfully.")
     return name, snippet
 
@@ -39,11 +37,14 @@ def get(name):
     """
 #    logging.error("FIXME: Unimplemented - get({!r})".format(name))
     logging.info("Retrieving snippet message from {!r}".format(name))
-    cursor = connection.cursor()
-    command = "select keyword, message from snippets where keyword='{}'".format(name)
-    cursor.execute(command, name)
-    result = cursor.fetchone()
-    connection.commit()
+#    cursor = connection.cursor()
+#    command = "select keyword, message from snippets where keyword='{}'".format(name)
+#    cursor.execute(command, name)
+#    result = cursor.fetchone()
+#    connection.commit()
+    with connection, connection.cursor() as cursor:
+        cursor.execute("select message from snippets where keyword=%s", (name,))
+        result = cursor.fetchone()
     if not result:
         #No snippet was found with that name.
         print "No keyword '{}' found.".format(name)
@@ -53,7 +54,7 @@ def get(name):
             msg = raw_input("Type a message to associate to the keyword {} (Enter for blank.)".format(name))
             put(name, msg)
     else:
-        return result[1]
+        return result[0]
 
 def main():
     """Main function"""
