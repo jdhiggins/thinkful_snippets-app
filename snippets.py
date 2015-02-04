@@ -1,9 +1,14 @@
+import psycopg2
 import sys
 import logging
 import argparse
 '''test of git push'''
 #Set the log output file, and the log level
 logging.basicConfig(filename="snippets.log", level=logging.DEBUG)
+logging.debug("Connecting to PostgreSQL")
+connection = psycopg2.connect("dbname='snippets' user='action' host='localhost'")
+logging.debug("Database connection established.")
+
 
 def put(name, snippet):
     """
@@ -11,7 +16,13 @@ def put(name, snippet):
   
     Returns the name and the snippet
     """
-    logging.error("FIXME: Unimplemented - put({!r}, {!r})".format(name, snippet))
+#    logging.error("FIXME: Unimplemented - put({!r}, {!r})".format(name, snippet))
+    logging.info("Storing snippet {!r}: {!r}".format(name, snippet))
+    cursor = connection.cursor()
+    command = "insert into snippets values (%s, %s)"
+    cursor.execute(command, (name, snippet))
+    connection.commit()
+    logging.debug("Snippet stored successfully.")
     return name, snippet
 
 def get(name):
@@ -20,8 +31,14 @@ def get(name):
     Or,return error, ask user for a different snippet name?
     Returns the snippet.
     """
-    logging.error("FIXME: Unimplemented - get({!r})".format(name))
-    return ""
+#    logging.error("FIXME: Unimplemented - get({!r})".format(name))
+    logging.info("Retrieving snippet message from {!r}".format(name))
+    cursor = connection.cursor()
+    command = "select keyword, message from snippets where keyword='{}'".format(name)
+    cursor.execute(command, name)
+    result = cursor.fetchone()
+    connection.commit()
+    return result[1]
 
 def main():
     """Main function"""
