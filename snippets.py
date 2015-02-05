@@ -57,10 +57,16 @@ def get(name):
     else:
         return result[0]
 
-def catalog():
-    
+def catalog():    
     with connection, connection.cursor() as cursor:
-        cursor.execute("select keyword from snippets")
+        #use order by keyword to return in alphabetical order
+        cursor.execute("select keyword from snippets order by keyword")
+        result = cursor.fetchall()
+    return result
+
+def search(search_word):    
+    with connection, connection.cursor() as cursor:
+        cursor.execute("select * from snippets where message like '%{}%'".format(search_word,))
         result = cursor.fetchall()
     return result
     
@@ -81,11 +87,16 @@ def main():
     # Subparser for the get command
     logging.debug("Constructing get subparser")
     get_parser = subparsers.add_parser("get", help="Retrieve a snippet")
-    get_parser.add_argument("name", help ="The name of the snippet")
+    get_parser.add_argument("name", help="The name of the snippet")
     
     # Subparser for the catalog command
     logging.debug("Constructing the catalog subparser")
     catalog_parser = subparsers.add_parser("catalog", help="Get a keyword list")
+     
+    # Subparser for the search command
+    logging.debug("Constructing the search subparser")
+    search_parser = subparsers.add_parser("search", help="Search message for words")
+    search_parser.add_argument("search_word", help="The word to be searched")
         
 
     arguments = parser.parse_args(sys.argv[1:])
@@ -106,6 +117,10 @@ def main():
 #        print "Keywords: " + keywords
         for x in keywords:
             print x[0] + ",",
+    elif command == "search":
+        search_results = search(**arguments)
+        for result in search_results:
+            print "Keyword: {}   Message: {}".format(result[0], result[1])
         
 if __name__ == "__main__":
     main()
