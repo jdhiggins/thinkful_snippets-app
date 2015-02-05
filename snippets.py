@@ -11,23 +11,23 @@ connection = psycopg2.connect("dbname='snippets' user='action' host='localhost'"
 logging.debug("Database connection established.")
 
 
-def put(name, snippet):
+def put(name, snippet, hidden_state):
     """
     Store a snippet with an associated name.
   
     Returns the name and the snippet
     """
 #    logging.error("FIXME: Unimplemented - put({!r}, {!r})".format(name, snippet))
-    logging.info("Storing snippet {!r}: {!r}".format(name, snippet))
+    logging.info("Storing snippet {!r}: {!r}. Hidden state: {}.".format(name, snippet, hidden_state))
     with connection, connection.cursor() as cursor:
         try:
-            command = "insert into snippets values (%s, %s)"
-            cursor.execute(command, (name, snippet))
+            command = "insert into snippets values (%s, %s, %s)"
+            cursor.execute(command, (name, snippet, hidden_state))
         except psycopg2.IntegrityError as e:
-            command = "update snippets set message=%s where keyword=%s"
-            cursor.execute(command, (snippet, name))
+            command = "update snippets set message=%s where keyword=%s.  Hidden state=%s"
+            cursor.execute(command, (snippet, name, hidden_state))
     logging.debug("Snippet stored successfully.")
-    return name, snippet
+    return name, snippet, hidden_state
 
 def get(name):
     """Retrieve the snippet with a given name.
@@ -60,13 +60,13 @@ def get(name):
 def catalog():    
     with connection, connection.cursor() as cursor:
         #use order by keyword to return in alphabetical order
-        cursor.execute("select keyword from snippets order by keyword")
+        cursor.execute("select keyword from snippets where not hidden order by keyword")
         result = cursor.fetchall()
     return result
 
 def search(search_word):    
     with connection, connection.cursor() as cursor:
-        cursor.execute("select * from snippets where message like '%{}%'".format(search_word,))
+        cursor.execute("select * from snippets where not hidden where message like '%{}%'".format(search_word,))
         result = cursor.fetchall()
     return result
     
@@ -83,7 +83,9 @@ def main():
     put_parser = subparsers.add_parser("put", help="Store a snippet")
     put_parser.add_argument("name", help="The name of the snippet")
     put_parser.add_argument("snippet", help="The snippet text")
-
+    put_parser.add_argument("--hide", action='store_true', help='hidden flag')
+#    put_parser.add_argument("--unhide", action='store_false', help='unhide flag')
+    
     # Subparser for the get command
     logging.debug("Constructing get subparser")
     get_parser = subparsers.add_parser("get", help="Retrieve a snippet")
@@ -103,10 +105,12 @@ def main():
     # Convert parsed arguments from Namespace to dictionary
     arguments = vars(arguments)
     command = arguments.pop("command")
-
+    print arguments
+    
     if command == "put":
-        name, snippet = put(**arguments)
+        name, snippet, hidden_state = put(**arguments)
         print ("Stored {!r} as {!r}".format(snippet, name))
+        print ("Hidden state: {}".format(hidden_state))
     elif command == "get":
         snippet = get(**arguments)
         print("Retrieved snippet: {!r}".format(snippet))
