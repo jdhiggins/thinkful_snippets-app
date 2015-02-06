@@ -11,23 +11,23 @@ connection = psycopg2.connect("dbname='snippets' user='action' host='localhost'"
 logging.debug("Database connection established.")
 
 
-def put(name, snippet, hidden_state):
+def put(name, snippet, hide):
     """
     Store a snippet with an associated name.
   
     Returns the name and the snippet
     """
 #    logging.error("FIXME: Unimplemented - put({!r}, {!r})".format(name, snippet))
-    logging.info("Storing snippet {!r}: {!r}. Hidden state: {}.".format(name, snippet, hidden_state))
+    logging.info("Storing snippet {!r}: {!r}. Hide: {}.".format(name, snippet, hide))
     with connection, connection.cursor() as cursor:
         try:
             command = "insert into snippets values (%s, %s, %s)"
-            cursor.execute(command, (name, snippet, hidden_state))
+            cursor.execute(command, (name, snippet, hide))
         except psycopg2.IntegrityError as e:
             command = "update snippets set message=%s where keyword=%s.  Hidden state=%s"
-            cursor.execute(command, (snippet, name, hidden_state))
+            cursor.execute(command, (snippet, name, hide))
     logging.debug("Snippet stored successfully.")
-    return name, snippet, hidden_state
+    return name, snippet, hide
 
 def get(name):
     """Retrieve the snippet with a given name.
@@ -108,9 +108,9 @@ def main():
     print arguments
     
     if command == "put":
-        name, snippet, hidden_state = put(**arguments)
+        name, snippet, hide = put(**arguments)
         print ("Stored {!r} as {!r}".format(snippet, name))
-        print ("Hidden state: {}".format(hidden_state))
+        print ("Hidden state: {}".format(hide))
     elif command == "get":
         snippet = get(**arguments)
         print("Retrieved snippet: {!r}".format(snippet))
